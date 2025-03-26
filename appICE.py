@@ -152,16 +152,35 @@ content = html.Div(
     style={'width': '100%', 'height': '50vh'}
 )
 
+interior_alt_content=dcc.Graph(id='interior-alt-content',figure={},style={'height':'91.5vh', 'background-color':'lightgray'},
+                                 config={'scrollZoom': True})
+alt_content = html.Div(
+    id="alt-content",
+    children=interior_alt_content,
+    style={'display':'none'}
+)
+navbar = dbc.NavbarSimple(
+    children=[
+        dbc.NavItem(dbc.NavLink("ICE", href="#", id="nav1-link", className="nav-link active",n_clicks=0)),
+        dbc.NavItem(dbc.NavLink("Afinidad", href="#", id="nav2-link", className="nav-link",n_clicks=0)),
+        
+    ],
+    brand="",
+    brand_href="#",
+    color="primary",
+    dark=True,
+    style={'height':'5.5vh'},
+    
+)
+
 app.layout = dbc.Container(
     [
         dbc.Row([
             dbc.Col(sidebar, width=3, style={"height": "100vh"},xs=12,sm=12,md=3,lg=3,xl=3,xxl=3),
             dbc.Col(
-                [dcc.Store(id='df-industrial',data={
-                                                        "data-frame": df_industrial.to_dict("records"),
-                                                        "año_sel":"2024B"
-                                                    }),
+                [navbar,
                     content,
+                    alt_content,
 
                     dcc.Store(id="store-map", data=map_default),
                     dcc.Store(id="hideout_geojson", data=dict(selected=[], classes=classes, colorscale=colorscale, style=style, colorProp="Area")),
@@ -181,6 +200,44 @@ app.layout = dbc.Container(
 )
 
                 ####################  Puras Callbacks  ####################
+####################        NAV
+##Este es el que cambia el contenido dependiendo del click sobre el nav
+#Recibe click sobre el navbar 
+#Dependiendo del click, oculta lo necesario. 
+@app.callback(
+    [
+        Output("page-content", "style"),
+        Output("alt-content", "style"),
+        Output("nav1-link", 'className'),
+        Output("nav2-link", 'className'),
+
+    ],
+    [
+        Input("nav1-link", "n_clicks"),
+        Input("nav2-link", "n_clicks"),
+        State("nav1-link", "className"),
+        State("nav2-link", "className"),
+    ],
+    prevent_initial_call=True,
+)
+def render_content(nav_1_click, nav_2_click,n1a,n2a):##Se puede mejorar. Se actualizan innecesariamente las classNames cuando se da click en un nav ya activo
+    nav_clicked=re.search(r'\d+', dash.callback_context.triggered[0]['prop_id']).group()
+    nav_actived=[n1a,n2a]##En tiempo pasado
+    if("active" in nav_actived[int(nav_clicked)-1]):##Así evito una re-carga al dar click redundante
+        return no_update, no_update,no_update,no_update
+    vacio=defStyle('none')
+    block=defStyle('block')
+    if 'nav1-link.n_clicks' in dash.callback_context.triggered[0]['prop_id']:
+        #Nav 2 activo
+        no_vacio=defStyle('map')
+        
+        return no_vacio, vacio,'nav-link active', 'nav-link'
+
+    if 'nav2-link.n_clicks' in dash.callback_context.triggered[0]['prop_id']:
+        #Nav 2 activo
+        no_vacio=defStyle('nav2')
+        
+        return vacio, no_vacio, 'nav-link', 'nav-link active'
 
 
 ##Este es el que se actualiza el contenido dependiendo de la eleccion del año. 
